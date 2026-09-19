@@ -1,0 +1,545 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>FutigeIA - Frutiger Aero AI Chat Platform</title>
+  <style>
+    /* Reset & Fonts */
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    }
+
+    body {
+      background: url('https://images.unsplash.com/photo-1506744038136-46273834b3fb?q=80&w=1920&auto=format&fit=crop') no-repeat center center fixed;
+      background-size: cover;
+      height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      overflow: hidden;
+      cursor: default;
+    }
+
+    /* Custom Loading Cursor Simulation */
+    .loading-active {
+      cursor: wait !important;
+    }
+
+    /* Glassmorphism Window Container */
+    .aero-window {
+      width: 850px;
+      height: 600px;
+      background: rgba(235, 245, 255, 0.65);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+      border: 1px solid rgba(255, 255, 255, 0.8);
+      border-radius: 12px;
+      box-shadow: 0 15px 35px rgba(0, 80, 160, 0.35), inset 0 1px 2px rgba(255, 255, 255, 0.9);
+      display: flex;
+      flex-direction: column;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Aero Titlebar */
+    .titlebar {
+      height: 34px;
+      background: linear-gradient(180deg, rgba(255,255,255,0.8) 0%, rgba(180,215,255,0.6) 50%, rgba(120,185,255,0.7) 51%, rgba(160,210,255,0.8) 100%);
+      border-bottom: 1px solid rgba(100, 160, 220, 0.8);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 12px;
+      user-select: none;
+    }
+
+    .titlebar-title {
+      font-size: 13px;
+      font-weight: bold;
+      color: #0d3b66;
+      text-shadow: 0 1px 1px rgba(255, 255, 255, 0.8);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .titlebar-controls {
+      display: flex;
+      gap: 6px;
+    }
+
+    .win-btn {
+      width: 16px;
+      height: 16px;
+      border-radius: 50%;
+      border: 1px solid rgba(0,0,0,0.2);
+      display: inline-block;
+    }
+
+    .win-close { background: linear-gradient(135deg, #ff7b7b, #d90429); }
+    .win-min { background: linear-gradient(135deg, #ffdd67, #f7b801); }
+    .win-max { background: linear-gradient(135deg, #70e000, #38b000); }
+
+    /* Gel Bar / Navigation */
+    .nav-bar {
+      height: 42px;
+      background: linear-gradient(180deg, #d8eeff 0%, #a2d2ff 49%, #71b8ff 50%, #90caf9 100%);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 15px;
+      border-bottom: 1px solid #5294e2;
+    }
+
+    .nav-buttons {
+      display: flex;
+      gap: 10px;
+    }
+
+    /* Frutiger Gel Button Style */
+    .gel-button {
+      padding: 6px 18px;
+      border-radius: 20px;
+      border: 1px solid #2b70c9;
+      background: linear-gradient(180deg, rgba(255,255,255,0.9) 0%, rgba(150,200,255,0.7) 48%, rgba(60,140,230,0.8) 52%, rgba(110,180,255,0.9) 100%);
+      color: #03254c;
+      font-size: 12px;
+      font-weight: bold;
+      box-shadow: inset 0 1px 0 rgba(255,255,255,0.9), 0 2px 4px rgba(0,50,120,0.2);
+      cursor: pointer;
+      transition: all 0.15s ease;
+      text-shadow: 0 1px 0 rgba(255,255,255,0.6);
+    }
+
+    .gel-button:hover {
+      background: linear-gradient(180deg, rgba(255,255,255,1) 0%, rgba(180,220,255,0.8) 48%, rgba(80,160,245,0.9) 52%, rgba(140,200,255,1) 100%);
+      box-shadow: inset 0 1px 0 rgba(255,255,255,1), 0 0 8px rgba(0,140,255,0.6);
+    }
+
+    .gel-button:active {
+      transform: translateY(1px);
+      background: linear-gradient(180deg, rgba(60,140,230,0.9) 0%, rgba(110,180,255,0.9) 100%);
+    }
+
+    /* Content Area */
+    .content-area {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+      position: relative;
+    }
+
+    /* Views */
+    .view-screen {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      display: none;
+      padding: 20px;
+      overflow-y: auto;
+    }
+
+    .view-screen.active {
+      display: flex;
+    }
+
+    /* Auth Screen (Windows Live Messenger Inspired) */
+    #auth-view {
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(180deg, rgba(225,240,255,0.8) 0%, rgba(190,220,250,0.9) 100%);
+    }
+
+    .login-card {
+      width: 360px;
+      background: rgba(255, 255, 255, 0.7);
+      border: 1px solid #7cb3ea;
+      border-radius: 10px;
+      padding: 25px;
+      box-shadow: 0 8px 20px rgba(0,60,130,0.15);
+      text-align: center;
+    }
+
+    .avatar-icon-large {
+      width: 80px;
+      height: 80px;
+      margin: 0 auto 15px;
+      background: radial-gradient(circle at 30% 30%, #ffffff, #a3c9f8, #5a9ce6);
+      border-radius: 50%;
+      border: 2px solid #ffffff;
+      box-shadow: 0 4px 10px rgba(0,80,180,0.3);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 36px;
+      color: #1a4971;
+    }
+
+    .input-field {
+      width: 100%;
+      padding: 8px 12px;
+      margin: 8px 0;
+      border: 1px solid #82b1e4;
+      border-radius: 5px;
+      background: rgba(255, 255, 255, 0.9);
+      font-size: 13px;
+      outline: none;
+    }
+
+    .input-field:focus {
+      border-color: #2b70c9;
+      box-shadow: 0 0 5px rgba(43,112,201,0.5);
+    }
+
+    .legal-box {
+      max-height: 80px;
+      overflow-y: scroll;
+      border: 1px solid #a0c4e8;
+      background: rgba(255,255,255,0.8);
+      font-size: 10px;
+      text-align: left;
+      padding: 8px;
+      margin: 10px 0;
+      color: #333;
+      border-radius: 4px;
+    }
+
+    /* Loading Overlay Screen */
+    #loading-view {
+      position: absolute;
+      top: 0; left: 0; right: 0; bottom: 0;
+      background: rgba(220, 238, 255, 0.95);
+      z-index: 100;
+      display: none;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+    }
+
+    .loading-progress-box {
+      width: 320px;
+      padding: 20px;
+      background: rgba(255, 255, 255, 0.8);
+      border: 1px solid #7cb3ea;
+      border-radius: 8px;
+      text-align: center;
+      box-shadow: 0 4px 15px rgba(0,60,130,0.2);
+    }
+
+    .progress-bar-container {
+      width: 100%;
+      height: 18px;
+      background: #e0e0e0;
+      border-radius: 9px;
+      border: 1px solid #a0a0a0;
+      overflow: hidden;
+      margin: 15px 0 10px;
+      position: relative;
+    }
+
+    .progress-bar-fill {
+      width: 0%;
+      height: 100%;
+      background: linear-gradient(90deg, #4caf50, #81c784, #4caf50);
+      background-size: 30px 30px;
+      border-radius: 8px;
+      transition: width 0.3s ease;
+    }
+
+    /* Chat View */
+    #chat-view {
+      display: none;
+      flex-direction: row;
+      padding: 0;
+      width: 100%;
+      height: 100%;
+    }
+
+    .sidebar {
+      width: 220px;
+      background: rgba(215, 235, 255, 0.5);
+      border-right: 1px solid rgba(120, 180, 240, 0.5);
+      padding: 15px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .bot-profile-card {
+      background: rgba(255,255,255,0.7);
+      border: 1px solid #8dbbe8;
+      border-radius: 8px;
+      padding: 10px;
+      text-align: center;
+    }
+
+    .bot-avatar {
+      width: 64px;
+      height: 64px;
+      border-radius: 8px;
+      margin: 0 auto 8px;
+      background: radial-gradient(circle, #bbf, #57f);
+      border: 2px solid #fff;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+    }
+
+    .chat-main {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      background: rgba(255,255,255,0.4);
+    }
+
+    .chat-messages {
+      flex: 1;
+      padding: 15px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+    }
+
+    .msg-bubble {
+      max-width: 75%;
+      padding: 10px 14px;
+      border-radius: 12px;
+      font-size: 13px;
+      line-height: 1.4;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.08);
+    }
+
+    .msg-bot {
+      align-self: flex-start;
+      background: linear-gradient(180deg, #ffffff 0%, #e3f2fd 100%);
+      border: 1px solid #90caf9;
+      color: #0d47a1;
+    }
+
+    .msg-user {
+      align-self: flex-end;
+      background: linear-gradient(180deg, #e8f5e9 0%, #c8e6c9 100%);
+      border: 1px solid #a5d6a7;
+      color: #1b5e20;
+    }
+
+    .chat-input-bar {
+      padding: 10px 15px;
+      background: rgba(220, 238, 255, 0.7);
+      border-top: 1px solid #90caf9;
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .chat-input {
+      flex: 1;
+      padding: 8px 12px;
+      border-radius: 15px;
+      border: 1px solid #81d4fa;
+      outline: none;
+      font-size: 13px;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- Main Frutiger Aero Window -->
+  <div class="aero-window">
+    
+    <!-- Titlebar -->
+    <div class="titlebar">
+      <div class="titlebar-title">
+        <span>🌐</span> <span id="app-title">FutigeIA - Frutiger Aero Roleplay Workspace</span>
+      </div>
+      <div class="titlebar-controls">
+        <span class="win-btn win-min"></span>
+        <span class="win-btn win-max"></span>
+        <span class="win-btn win-close"></span>
+      </div>
+    </div>
+
+    <!-- Navigation Bar -->
+    <div class="nav-bar">
+      <div class="nav-buttons">
+        <button class="gel-button" onclick="switchView('auth-view')">🔑 Login / Register</button>
+        <button class="gel-button" onclick="switchView('chat-view')">💬 Chat Room</button>
+      </div>
+      <div>
+        <button class="gel-button" onclick="toggleLanguage()" id="lang-btn">🌐 Language: EN</button>
+      </div>
+    </div>
+
+    <!-- Main Content Area -->
+    <div class="content-area">
+
+      <!-- View 1: Auth & Registration -->
+      <div id="auth-view" class="view-screen active">
+        <div class="login-card">
+          <div class="avatar-icon-large">👤</div>
+          <h2 style="color: #0d3b66; font-size: 18px; margin-bottom: 5px;" id="login-heading">Sign In to FutigeIA</h2>
+          <p style="font-size: 11px; color: #555; margin-bottom: 15px;">Experience next-gen AI Roleplay in Frutiger Aero Style</p>
+
+          <input type="email" class="input-field" placeholder="Email / Windows Live ID" id="email-input">
+          <input type="password" class="input-field" placeholder="Password" id="pass-input">
+
+          <div style="text-align: left; font-size: 11px; margin: 8px 0; color: #333;">
+            <input type="checkbox" id="terms-check"> 
+            <label for="terms-check" id="terms-label">I accept Terms & Conditions</label>
+          </div>
+
+          <div class="legal-box">
+            <b>FutigeIA Legal & Service Agreement</b><br>
+            1. All AI-generated responses are processed via user-configured API endpoints.<br>
+            2. Users must comply with international safety standards. Unlawful activities, scraping, hacking, and unauthorized bot manipulation are strictly prohibited.<br>
+            3. Data protection: Your personal credentials and API keys are stored securely within local browser sessions or encrypted OAuth tunnels.
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-top: 12px;">
+            <button class="gel-button" style="flex: 1;" onclick="startLogin()" id="btn-signin">Sign In</button>
+            <button class="gel-button" style="flex: 1;" onclick="startLogin()" id="btn-google">G Google</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- View 2: Loading Overlay -->
+      <div id="loading-view">
+        <div class="loading-progress-box">
+          <h3 style="color: #0d3b66; font-size: 15px;" id="loading-title">Connecting to FutigeIA Network...</h3>
+          <p style="font-size: 11px; color: #666; margin-top: 5px;" id="loading-step">Step 3: Establishing Secure AI Gateway...</p>
+          
+          <div class="progress-bar-container">
+            <div class="progress-bar-fill" id="progress-fill"></div>
+          </div>
+          
+          <button class="gel-button" style="font-size: 11px; padding: 4px 12px;" onclick="cancelLoading()">Cancel</button>
+        </div>
+      </div>
+
+      <!-- View 3: Chat Screen (Messenger Style) -->
+      <div id="chat-view" class="view-screen">
+        <div class="sidebar">
+          <div class="bot-profile-card">
+            <div class="bot-avatar"></div>
+            <h4 style="color: #0d3b66; font-size: 14px;">Aero Companion</h4>
+            <p style="font-size: 10px; color: #666; margin-top: 2px;">Status: Online (Frutiger AI)</p>
+          </div>
+
+          <button class="gel-button" style="width: 100%; font-size: 11px;" onclick="alert('Memory Panel Opened: Summaries & Lorebook active')">🧠 Edit AI Memory</button>
+          <button class="gel-button" style="width: 100%; font-size: 11px;" onclick="alert('Web Search Engine connected for real-time fact checking.')">🔍 Web Search: ON</button>
+        </div>
+
+        <div class="chat-main">
+          <div class="chat-messages" id="chat-messages">
+            <div class="msg-bubble msg-bot">
+              <b>Aero Companion:</b> Welcome to FutigeIA! *smiles brightly as crystal-blue bubbles float around* How can I assist your roleplay story today?
+            </div>
+          </div>
+
+          <div class="chat-input-bar">
+            <input type="text" class="chat-input" placeholder="Type a message or upload image..." id="user-msg-input" onkeypress="handleKeyPress(event)">
+            <button class="gel-button" onclick="sendMessage()">Send</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+
+  <script>
+    let currentLang = 'EN';
+
+    function switchView(viewId) {
+      document.querySelectorAll('.view-screen').forEach(el => el.classList.remove('active'));
+      document.getElementById(viewId).classList.add('active');
+    }
+
+    function startLogin() {
+      const check = document.getElementById('terms-check');
+      if (!check.checked) {
+        alert(currentLang === 'EN' ? 'Please accept the Terms & Conditions first.' : 'Por favor acepta los Términos y Condiciones primero.');
+        return;
+      }
+
+      // Show Loading screen with animated progress
+      document.body.classList.add('loading-active');
+      const loadingView = document.getElementById('loading-view');
+      const progressFill = document.getElementById('progress-fill');
+      loadingView.style.display = 'flex';
+      progressFill.style.width = '0%';
+
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 25;
+        progressFill.style.width = progress + '%';
+        if (progress >= 100) {
+          clearInterval(interval);
+          setTimeout(() => {
+            loadingView.style.display = 'none';
+            document.body.classList.remove('loading-active');
+            switchView('chat-view');
+          }, 400);
+        }
+      }, 300);
+    }
+
+    function cancelLoading() {
+      document.getElementById('loading-view').style.display = 'none';
+      document.body.classList.remove('loading-active');
+    }
+
+    function sendMessage() {
+      const input = document.getElementById('user-msg-input');
+      const text = input.value.trim();
+      if (!text) return;
+
+      const chatMsgs = document.getElementById('chat-messages');
+
+      // User Message
+      const userBubble = document.createElement('div');
+      userBubble.className = 'msg-bubble msg-user';
+      userBubble.innerHTML = `<b>You:</b> ${text}`;
+      chatMsgs.appendChild(userBubble);
+
+      input.value = '';
+      chatMsgs.scrollTop = chatMsgs.scrollHeight;
+
+      // Simulated Bot Reply
+      setTimeout(() => {
+        const botBubble = document.createElement('div');
+        botBubble.className = 'msg-bubble msg-bot';
+        botBubble.innerHTML = `<b>Aero Companion:</b> *nods attentively* I received: "${text}". Memory summary updated!`;
+        chatMsgs.appendChild(botBubble);
+        chatMsgs.scrollTop = chatMsgs.scrollHeight;
+      }, 1000);
+    }
+
+    function handleKeyPress(e) {
+      if (e.key === 'Enter') sendMessage();
+    }
+
+    function toggleLanguage() {
+      if (currentLang === 'EN') {
+        currentLang = 'ES';
+        document.getElementById('lang-btn').innerText = '🌐 Idioma: ES';
+        document.getElementById('login-heading').innerText = 'Iniciar Sesión en FutigeIA';
+        document.getElementById('terms-label').innerText = 'Acepto los Términos y Condiciones';
+        document.getElementById('btn-signin').innerText = 'Entrar';
+        document.getElementById('loading-title').innerText = 'Conectando a la red de FutigeIA...';
+        document.getElementById('loading-step').innerText = 'Paso 3: Estableciendo conexión segura con IA...';
+      } else {
+        currentLang = 'EN';
+        document.getElementById('lang-btn').innerText = '🌐 Language: EN';
+        document.getElementById('login-heading').innerText = 'Sign In to FutigeIA';
+        document.getElementById('terms-label').innerText = 'I accept Terms & Conditions';
+        document.getElementById('btn-signin').innerText = 'Sign In';
+        document.getElementById('loading-title').innerText = 'Connecting to FutigeIA Network...';
+        document.getElementById('loading-step').innerText = 'Step 3: Establishing Secure AI Gateway...';
+      }
+    }
+  </script>
+</body>
+</html>
